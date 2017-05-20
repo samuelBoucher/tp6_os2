@@ -33,4 +33,5 @@ if __name__ == '__main__':
         cli = Client("Client " + str(nb_clients), connect)
         cli.start()
         nb_clients += 1
+        print("Il y a en ce moment " + str(nb_clients) + " clients")
 
