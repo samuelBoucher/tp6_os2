@@ -11,7 +11,6 @@ class ProtocoleXml(Protocole):
         self.server_root = server_root
 
     def respond(self, request):
-        document = ''
         if '<quitter/>' in request:
             document = self.quit()
         else:
