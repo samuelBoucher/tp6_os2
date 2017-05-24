@@ -1,4 +1,4 @@
-from xml.dom.minidom import Document
+from xml.dom.minidom import Document, parseString
 
 from protocole import Protocole
 
@@ -6,17 +6,37 @@ from protocole import Protocole
 class ProtocoleXml(Protocole):
     """Interface du langage de communication XML"""
 
-    def __init__(self, server_root):
+    def __init__(self, file_system):
         super(Protocole, self).__init__()
-        self.server_root = server_root
+        self.file_system = file_system
 
     def respond(self, request):
-        if '<quitter/>' in request:
+        if '<questionListeFichiers>' in request:
+            document = self.get_file_list(request)
+        elif '<quitter/>' in request:
             document = self.quit()
         else:
             document = self.invalid()
 
         return document.toxml()
+
+    def get_request_content(self, request, tag_name):
+        document = parseString(request)
+        return document.getElementsByTagName(tag_name)[0].childNodes[0].data
+
+    def get_file_list(self, request):
+        request_tag_name = 'questionListeFichiers'
+        folder = self.get_request_content(request, request_tag_name)
+        file_list = self.file_system.get_file_list(folder)
+
+        response_parent_tag_name = 'listeFichiers'
+        response_child_tag_name = 'fichier'
+        document = self.element_to_xml(response_parent_tag_name)
+        for file_name in file_list:
+            xml_file_name = self.element_to_xml(response_child_tag_name, file_name)
+            document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+
+        return document
 
     def quit(self):
         tag = 'bye'
