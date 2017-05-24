@@ -2,7 +2,7 @@ import socket
 
 from protocole import Protocole
 from protocole_xml import ProtocoleXml
-from client import Client
+from client_tp6 import Client
 
 if __name__ == '__main__':
 
