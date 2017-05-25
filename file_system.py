@@ -18,4 +18,4 @@ class FileSystem:
         return file_list
 
     def get_complete_path(self, path):
-        return self.root + path
+        return self.root + path + '/'

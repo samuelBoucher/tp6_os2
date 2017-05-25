@@ -4,8 +4,9 @@
 import unittest
 from unittest.mock import Mock
 
-from client_tp6 import Client
 from protocole_xml import ProtocoleXml
+
+from client_tp6 import Client
 
 
 class XmlTest(unittest.TestCase):

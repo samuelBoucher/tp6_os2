@@ -9,7 +9,7 @@ if __name__ == '__main__':
     s = socket.socket()
     host = ''
     port = 50001
-    server_root = '../dropbox/'
+    server_root = 'dropbox/'
     s.bind((host, port))
     s.listen(5)
 
