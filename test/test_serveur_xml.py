@@ -50,7 +50,21 @@ class XmlTest(unittest.TestCase):
         get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
         quit_request = b'<quitter/>'
         self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsFileList_FolderDoesntExist_ShouldReturnError(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurDossierInexistant/>'
+
+        get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
+        quit_request = b'<quitter/>'
+        self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_file_system.folder_exists.return_value = False
 
         self.client.run()
 

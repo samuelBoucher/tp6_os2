@@ -27,14 +27,18 @@ class ProtocoleXml(Protocole):
     def get_file_list(self, request):
         request_tag_name = 'questionListeFichiers'
         folder = self.get_request_content(request, request_tag_name)
-        file_list = self.file_system.get_file_list(folder)
 
-        response_parent_tag_name = 'listeFichiers'
-        response_child_tag_name = 'fichier'
-        document = self.element_to_xml(response_parent_tag_name)
-        for file_name in file_list:
-            xml_file_name = self.element_to_xml(response_child_tag_name, file_name)
-            document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+        if self.file_system.folder_exists(folder):
+            file_list = self.file_system.get_file_list(folder)
+            response_parent_tag_name = 'listeFichiers'
+            response_child_tag_name = 'fichier'
+            document = self.element_to_xml(response_parent_tag_name)
+            for file_name in file_list:
+                xml_file_name = self.element_to_xml(response_child_tag_name, file_name)
+                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+        else:
+            tag_name = 'erreurDossierInexistant'
+            document = self.element_to_xml(tag_name)
 
         return document
 

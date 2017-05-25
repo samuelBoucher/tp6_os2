@@ -6,6 +6,10 @@ class FileSystem:
     def __init__(self, root):
         self.root = root
 
+    def folder_exists(self, directory):
+        complete_directory = self.root + directory
+        return os.path.exists(complete_directory)
+
     def get_file_list(self, folder_name):
         complete_file_name = self.get_complete_path(folder_name)
         file_list = []
