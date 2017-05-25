@@ -11,7 +11,9 @@ class ProtocoleXml(Protocole):
         self.file_system = file_system
 
     def respond(self, request):
-        if '<questionListeFichiers>' in request:
+        if '<questionListeDossiers>' in request:
+            document = self.get_folder_list(request)
+        elif '<questionListeFichiers>' in request:
             document = self.get_file_list(request)
         elif '<quitter/>' in request:
             document = self.quit()
@@ -24,6 +26,24 @@ class ProtocoleXml(Protocole):
         document = parseString(request)
         return document.getElementsByTagName(tag_name)[0].childNodes[0].data
 
+    def get_folder_list(self, request):
+        request_tag_name = 'questionListeDossiers'
+        folder = self.get_request_content(request, request_tag_name)
+
+        if self.file_system.folder_exists(folder):
+            folder_list = self.file_system.get_folder_list(folder)
+            response_parent_tag_name = 'listeDossiers'
+            response_child_tag_name = 'dossier'
+            document = self.element_to_xml(response_parent_tag_name)
+            for folder in folder_list:
+                xml_file_name = self.element_to_xml(response_child_tag_name, folder)
+                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+        else:
+            tag_name = 'erreurDossierInexistant'
+            document = self.element_to_xml(tag_name)
+
+        return document
+
     def get_file_list(self, request):
         request_tag_name = 'questionListeFichiers'
         folder = self.get_request_content(request, request_tag_name)
@@ -33,8 +53,8 @@ class ProtocoleXml(Protocole):
             response_parent_tag_name = 'listeFichiers'
             response_child_tag_name = 'fichier'
             document = self.element_to_xml(response_parent_tag_name)
-            for file_name in file_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, file_name)
+            for file in file_list:
+                xml_file_name = self.element_to_xml(response_child_tag_name, file)
                 document.childNodes[0].appendChild(xml_file_name.childNodes[0])
         else:
             tag_name = 'erreurDossierInexistant'
