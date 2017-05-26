@@ -71,6 +71,53 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testClientRequestsCreateFolder_ShouldCreateFolder(self):
+        expected_folder_name = 'd1/'
+        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
+        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.side_effect = [True, False]  # Le dossier parent existe,
+        #  mais le dossier à créer n'existe pas
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_file_system.create_folder.assert_called_once_with(expected_folder_name)
+
+    def testClientRequestsCreateFolder_ShouldReturnOk(self):
+        expected_answer = self.XML_PREFIX + '<ok/>'
+        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
+        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.side_effect = [True, False]  # Le dossier parent existe,
+        #  mais le dossier à créer n'existe pas
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsCreateFolder_FolderAlreadyExists_ShouldReturnFolderExists(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierExiste/>'
+        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
+        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.side_effect = [True, True]  # Le dossier parent existe,
+        #  mais le dossier à créer existe aussi
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsCreateFolder_ParentFolderDoesntExist_ShouldReturnFolderDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
+        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
+        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
     def testClientRequestsFileList_ShouldReturnFileList(self):
         expected_answer = self.XML_PREFIX + \
                           '<listeFichiers>' \

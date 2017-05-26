@@ -19,7 +19,6 @@ class FileSystem:
         else:
             return False
 
-
     def get_folder_list(self, folder_name):
         complete_folder_name = self.get_complete_folder_path(folder_name)
         folder_list = []
@@ -30,6 +29,10 @@ class FileSystem:
                 folder_list.append(path)
 
         return folder_list
+
+    def create_folder(self, directory):
+        complete_directory = self.get_complete_folder_path(directory)
+        os.mkdir(complete_directory)
 
     def get_file_list(self, folder_name):
         complete_file_name = self.get_complete_folder_path(folder_name)

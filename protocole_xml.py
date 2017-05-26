@@ -1,6 +1,8 @@
+import os
 from xml.dom.minidom import Document, parseString
 
 from protocole import Protocole
+from pathlib import PurePath
 
 
 class ProtocoleXml(Protocole):
@@ -13,6 +15,8 @@ class ProtocoleXml(Protocole):
     def respond(self, request):
         if '<questionListeDossiers>' in request:
             document = self.get_folder_list(request)
+        elif '<creerDossier>' in request:
+            document = self.create_folder(request)
         elif '<questionListeFichiers>' in request:
             document = self.get_file_list(request)
         elif '<questionFichierRecent>' in request:
@@ -23,28 +27,6 @@ class ProtocoleXml(Protocole):
             document = self.invalid()
 
         return document.toxml()
-
-    def get_request_content(self, request, parent_tag_name, child_tag_name=''):
-        document = parseString(request)
-
-        if child_tag_name:
-            return self.get_complex_request_content(document, parent_tag_name, child_tag_name)
-        else:
-            return self.get_simple_request_content(document, parent_tag_name)
-
-    def get_simple_request_content(self, document, tag_name):
-        return document.getElementsByTagName(tag_name)[0].childNodes[0].data
-
-    def get_complex_request_content(self, document, parent_tag, child_tag):
-        node = document.getElementsByTagName(parent_tag)[0]
-        child_node = node.getElementsByTagName(child_tag)[0]
-        return child_node.firstChild.data
-        # for node in document.getElementsByTagName(parent_tag):
-        #     if node is not None:
-        #         # for child_node in node.getElementsByTagName(child_tag):
-        #         #     data.append(child_node.firstChild.data)
-        #         data =
-        #
 
     def get_folder_list(self, request):
         request_tag_name = 'questionListeDossiers'
@@ -63,6 +45,23 @@ class ProtocoleXml(Protocole):
             document = self.element_to_xml(response_tag_name)
 
         return document
+
+    def create_folder(self, request):
+        request_tag_name = 'creerDossier'
+        request_content = self.get_request_content(request, request_tag_name)
+        folder_to_create = self.get_folder_name(request_content)
+        folder_path = self.get_parent_folder_name(folder_to_create)
+
+        if self.file_system.folder_exists(folder_path):
+            if self.file_system.folder_exists(folder_to_create):
+                response_tag = 'erreurDossierExiste'
+            else:
+                self.file_system.create_folder(folder_to_create)
+                response_tag = 'ok'
+        else:
+            response_tag = 'erreurDossierInexistant'
+
+        return self.element_to_xml(response_tag)
 
     def get_file_list(self, request):
         request_tag_name = 'questionListeFichiers'
@@ -117,6 +116,22 @@ class ProtocoleXml(Protocole):
 
         return document
 
+    def get_request_content(self, request, parent_tag_name, child_tag_name=''):
+        document = parseString(request)
+
+        if child_tag_name:
+            return self.get_complex_request_content(document, parent_tag_name, child_tag_name)
+        else:
+            return self.get_simple_request_content(document, parent_tag_name)
+
+    def get_simple_request_content(self, document, tag_name):
+        return document.getElementsByTagName(tag_name)[0].childNodes[0].data
+
+    def get_complex_request_content(self, document, parent_tag, child_tag):
+        node = document.getElementsByTagName(parent_tag)[0]
+        child_node = node.getElementsByTagName(child_tag)[0]
+        return child_node.firstChild.data
+
     def element_to_xml(self, tag, text=''):
         document = Document()
 
@@ -128,6 +143,10 @@ class ProtocoleXml(Protocole):
 
         return document
 
-
     def get_folder_name(self, path):
         return path.replace(self.file_system.root, '') + '/'
+
+    def get_parent_folder_name(self, path):
+        path = path[:-1]  # On enlève le dernier slash
+        return os.path.dirname(path)
+
