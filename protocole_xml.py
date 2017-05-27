@@ -2,7 +2,6 @@ import os
 from xml.dom.minidom import Document, parseString
 
 from protocole import Protocole
-from pathlib import PurePath
 
 
 class ProtocoleXml(Protocole):
@@ -74,13 +73,17 @@ class ProtocoleXml(Protocole):
         folder = self.get_request_content(request, request_tag_name)
 
         if self.file_system.folder_exists(folder):
-            file_list = self.file_system.get_file_list(folder)
-            response_parent_tag_name = 'listeFichiers'
-            response_child_tag_name = 'fichier'
-            document = self.element_to_xml(response_parent_tag_name)
-            for file in file_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, file)
-                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            try:
+                file_list = self.file_system.get_file_list(folder)
+                response_parent_tag_name = 'listeFichiers'
+                response_child_tag_name = 'fichier'
+                document = self.element_to_xml(response_parent_tag_name)
+                for file in file_list:
+                    xml_file_name = self.element_to_xml(response_child_tag_name, file)
+                    document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            except IOError:
+                response_tag_name = 'erreurDossierLecture'
+                document = self.element_to_xml(response_tag_name)
         else:
             response_tag_name = 'erreurDossierInexistant'
             document = self.element_to_xml(response_tag_name)

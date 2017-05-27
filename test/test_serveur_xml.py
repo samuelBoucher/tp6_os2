@@ -157,6 +157,19 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testGetFileList_CouldNotReadFolder_ShouldReturnCouldNotReadFolder(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurDossierLecture/>'
+
+        get_folder_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_file_list.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
     def testClientAsksIfFileMoreRecent_FileMoreRecent_ShouldReturnYes(self):
         expected_answer = self.XML_PREFIX + '<oui/>'
         request = b'<questionFichierRecent>' \
