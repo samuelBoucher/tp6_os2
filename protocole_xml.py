@@ -21,6 +21,8 @@ class ProtocoleXml(Protocole):
             document = self.get_file_list(request)
         elif '<questionFichierRecent>' in request:
             document = self.verify_file_more_recent(request)
+        elif '<supprimerFichier>' in request:
+            document = self.delete_file(request)
         elif '<quitter/>' in request:
             document = self.quit()
         else:
@@ -101,6 +103,26 @@ class ProtocoleXml(Protocole):
                 response_tag = 'non'
         else:
             response_tag = 'erreurFichierInexistant'
+
+        return self.element_to_xml(response_tag)
+
+    def delete_file(self, request):
+        request_tag_name = "supprimerFichier"
+        folder_tag_name = 'dossier'
+        file_tag_name = 'nom'
+        folder_path = self.get_request_content(request, request_tag_name, folder_tag_name)
+        folder_name = self.get_folder_name(folder_path)
+        file_name = self.get_request_content(request, request_tag_name, file_tag_name)
+        file_path = folder_name + file_name
+
+        if self.file_system.folder_exists(folder_name):
+            if self.file_system.file_exists(file_path):
+                self.file_system.delete_file(file_path)
+                response_tag = "ok"
+            else:
+                response_tag = "erreurFichierInexistant"
+        else:
+            response_tag = "erreurDossierInexistant"
 
         return self.element_to_xml(response_tag)
 

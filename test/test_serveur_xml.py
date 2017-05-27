@@ -191,6 +191,65 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testDeleteFile_ShouldDeleteFile(self):
+        expected_file_name = 'd1/f1'
+        request = b'<supprimerFichier>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'</supprimerFichier>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_file_system.delete_file.assert_called_once_with(expected_file_name)
+
+    def testDeleteFile_ShouldReturnOk(self):
+        expected_answer = self.XML_PREFIX + '<ok/>'
+        request = b'<supprimerFichier>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'</supprimerFichier>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_FolderDoesntExist_ShouldReturnFolderDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
+        request = b'<supprimerFichier>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'</supprimerFichier>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_FileDoesntExist_ShouldReturnFileDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
+        request = b'<supprimerFichier>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'</supprimerFichier>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
 
 if __name__ == '__main__':
     unittest.main()
