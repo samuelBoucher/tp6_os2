@@ -49,8 +49,7 @@ class XmlTest(unittest.TestCase):
                           '<dossier>d1/d2/d3</dossier>' \
                           '</listeDossiers>'
         get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_folder_list.return_value = ['d1/d2', 'd1/d2/d3']
 
@@ -64,7 +63,7 @@ class XmlTest(unittest.TestCase):
 
         get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
         quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
 
         self.client.run()
@@ -125,8 +124,7 @@ class XmlTest(unittest.TestCase):
                           '<fichier>d1/d2/f2</fichier>' \
                           '</listeFichiers>'
         get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_file_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
 
@@ -139,8 +137,7 @@ class XmlTest(unittest.TestCase):
                           '<erreurDossierInexistant/>'
 
         get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_file_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
 
         self.client.run()
