@@ -127,8 +127,11 @@ class ProtocoleXml(Protocole):
 
         if self.file_system.folder_exists(folder_name):
             if self.file_system.file_exists(file_path):
-                self.file_system.delete_file(file_path)
-                response_tag = "ok"
+                try:
+                    self.file_system.delete_file(file_path)
+                    response_tag = "ok"
+                except IOError:
+                    response_tag = 'erreurFichierLecture'
             else:
                 response_tag = "erreurFichierInexistant"
         else:

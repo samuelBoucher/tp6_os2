@@ -293,6 +293,22 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testDeleteFile_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurFichierLecture/>'
+        request = b'<supprimerFichier>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'</supprimerFichier>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.delete_file.side_effect = IOError()
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
 
 if __name__ == '__main__':
     unittest.main()
