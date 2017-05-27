@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import json
 from unittest.mock import Mock
 
 from protocole_json import ProtocoleJson
@@ -41,6 +42,21 @@ class JsonTest(unittest.TestCase):
         self.client.run()
 
         self.mock_connexion.close.assert_called_once()
+
+    def testClientRequestsDeleteFile_ShouldReturnResponseOk(self):
+        expected_answer = '{"reponse": "ok"}'
+        delete_file_request = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        delete_file_request['supprimerFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_file_system.folder_exists.return_value = True
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
     def testClientRequestsFolderList_ShouldReturnFolderList(self):
         expected_answer = self.XML_PREFIX + \
