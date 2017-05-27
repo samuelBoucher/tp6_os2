@@ -217,6 +217,23 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testVerifyFileMoreRecent_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurFichierLecture/>'
+        request = b'<questionFichierRecent>' \
+                  b'<nom>f1</nom>' \
+                  b'<dossier>d1</dossier>' \
+                  b'<date>1111.1111</date>' \
+                  b'</questionFichierRecent>'
+        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_file_modification_date.side_effect = IOError()
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
     def testDeleteFile_ShouldDeleteFile(self):
         expected_file_name = 'd1/f1'
         request = b'<supprimerFichier>' \

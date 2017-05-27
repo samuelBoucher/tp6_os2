@@ -101,13 +101,16 @@ class ProtocoleXml(Protocole):
         file_path = folder_name + file_name
 
         if self.file_system.file_exists(file_path):
-            client_file_date = self.get_request_content(request, request_tag_name, date_tag_name)
-            server_file_date = self.file_system.get_file_modification_date(file_path)
+            try:
+                client_file_date = self.get_request_content(request, request_tag_name, date_tag_name)
+                server_file_date = self.file_system.get_file_modification_date(file_path)
 
-            if client_file_date > server_file_date:
-                response_tag = 'oui'
-            else:  # On considère que c'est impossible que les deux dates soient égales.
-                response_tag = 'non'
+                if client_file_date > server_file_date:
+                    response_tag = 'oui'
+                else:  # On considère que c'est impossible que les deux dates soient égales.
+                    response_tag = 'non'
+            except IOError:
+                response_tag = 'erreurFichierLecture'
         else:
             response_tag = 'erreurFichierInexistant'
 
