@@ -34,6 +34,10 @@ class FileSystem:
         complete_directory = self.get_complete_folder_path(directory)
         os.mkdir(complete_directory)
 
+    def delete_file(self, directory):
+        complete_directory = self.get_complete_folder_path(directory)
+        os.remove(complete_directory)
+
     def get_file_list(self, folder_name):
         complete_file_name = self.get_complete_folder_path(folder_name)
         file_list = []
@@ -53,7 +57,7 @@ class FileSystem:
         return modification_date
 
     def get_complete_folder_path(self, folder_name):
-        return self.root + folder_name + '/'
+        return self.root + folder_name
 
     def get_complete_file_path(self, file_name):
         return self.root + file_name
