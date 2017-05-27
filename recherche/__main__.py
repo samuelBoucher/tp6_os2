@@ -1,6 +1,6 @@
 import socket
 
-from client import Client
+from client_tp6 import Client
 
 if __name__ == '__main__':
 

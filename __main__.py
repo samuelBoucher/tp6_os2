@@ -1,14 +1,14 @@
 import socket
 
-from protocole import Protocole
+from client_tp6 import Client
+from file_system import FileSystem
 from protocole_xml import ProtocoleXml
-from client import Client
 
 if __name__ == '__main__':
 
     s = socket.socket()
     host = ''
-    port = 50001
+    port = 50002
     server_root = 'dropbox/'
     s.bind((host, port))
     s.listen(5)
@@ -19,7 +19,8 @@ if __name__ == '__main__':
         print("Attente d'un autre client...")
         connect, addr = s.accept()
         print('Connexion venant de ', addr)
-        protocole = ProtocoleXml(server_root)
+        file_system = FileSystem(server_root)
+        protocole = ProtocoleXml(file_system)
         cli = Client("Client " + str(nb_clients), connect, protocole)
         cli.start()
         nb_clients += 1

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import threading
-from xml.dom.minidom import parseString
 
 
 class Client(threading.Thread):
@@ -15,7 +14,7 @@ class Client(threading.Thread):
         while True:
             response = self.wait_for_request()
             self.connection.send(bytes(response, 'UTF-8'))
-            if '<bye/>' in response:
+            if 'bye' in response:
                 break
         self.connection.close()
 
