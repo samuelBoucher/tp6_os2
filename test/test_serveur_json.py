@@ -58,6 +58,37 @@ class JsonTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testClientRequestsDeleteFile_FolderDoesntExist_ShouldReturnError(self):
+        expected_answer = '{"reponse": "erreurDossierInexistant"}'
+        delete_file_request = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        delete_file_request['supprimerFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsDeleteFile_FileDoesntExist_ShouldReturnError(self):
+        expected_answer = '{"reponse": "erreurFichierInexistant"}'
+        delete_file_request = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        delete_file_request['supprimerFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
     def testClientRequestsFolderList_ShouldReturnFolderList(self):
         expected_answer = self.XML_PREFIX + \
                           '<listeDossiers>' \
