@@ -21,6 +21,9 @@ class ProtocoleJson(Protocole):
             document = self.verify_file_more_recent(request)
         elif 'supprimerFichier' in request:
             document = self.delete_file(request)
+        elif 'telechargerFichier' in request:
+            print('ok')
+            document = self.download_file(request)
         elif 'quitter' in request:
             document = self.quit()
         else:
@@ -80,6 +83,34 @@ class ProtocoleJson(Protocole):
         data = {}
 
         self.add_row_to_json_table('reponse', response, data)
+
+        return self.json_table_to_json_text(data)
+
+    def download_file(self, request):
+        request_tag_name = "telechargerFichier"
+        request_content = self.interpret(request, request_tag_name)
+        file_to_send = request_content['dossier'] + '/' + request_content['nom']
+
+        data = {}
+
+        if self.file_system.folder_exists(request_content['dossier']):
+            if self.file_system.file_exists(file_to_send):
+                signature = self.file_system.get_md5_signature(file_to_send)
+                content = self.file_system.get_file_content(file_to_send)
+                date = self.file_system.get_file_modification_date(file_to_send)
+
+                fichier = {}
+                self.add_row_to_json_table('signature', signature, fichier)
+                self.add_row_to_json_table('contenu', content, fichier)
+                self.add_row_to_json_table('date', date, fichier)
+
+                self.add_row_to_json_table('fichier', fichier, data)
+            else:
+                response = "erreurFichierInexistant"
+                self.add_row_to_json_table('reponse', response, data)
+        else:
+            response = "erreurDossierInexistant"
+            self.add_row_to_json_table('reponse', response, data)
 
         return self.json_table_to_json_text(data)
 
