@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import threading
+import json
 
 
 class Client(threading.Thread):
@@ -13,6 +14,8 @@ class Client(threading.Thread):
     def run(self):
         while True:
             response = self.wait_for_request()
+            if type(response) is dict:
+                response = json.dumps(response)
             self.connection.send(bytes(response, 'UTF-8'))
             if 'bye' in response:
                 break
@@ -20,7 +23,9 @@ class Client(threading.Thread):
 
     def wait_for_request(self):
         print("En attente d'une réponse...")
-        request = self.connection.recv(1024).decode('UTF-8')
+        request = self.connection.recv(1024)
+        if type(request) is bytes:
+            request = request.decode('UTF-8')
         print('requete = ' + str(request))
         response = self.protocole.respond(request)
         print('reponse = ' + str(response))
