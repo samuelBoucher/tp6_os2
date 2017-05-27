@@ -35,13 +35,17 @@ class ProtocoleXml(Protocole):
         folder = self.get_request_content(request, request_tag_name)
 
         if self.file_system.folder_exists(folder):
-            folder_list = self.file_system.get_folder_list(folder)
-            response_parent_tag_name = 'listeDossiers'
-            response_child_tag_name = 'dossier'
-            document = self.element_to_xml(response_parent_tag_name)
-            for folder in folder_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, folder)
-                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            try:
+                folder_list = self.file_system.get_folder_list(folder)
+                response_parent_tag_name = 'listeDossiers'
+                response_child_tag_name = 'dossier'
+                document = self.element_to_xml(response_parent_tag_name)
+                for folder in folder_list:
+                    xml_file_name = self.element_to_xml(response_child_tag_name, folder)
+                    document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            except IOError:
+                response_tag_name = 'erreurDossierLecture'
+                document = self.element_to_xml(response_tag_name)
         else:
             response_tag_name = 'erreurDossierInexistant'
             document = self.element_to_xml(response_tag_name)

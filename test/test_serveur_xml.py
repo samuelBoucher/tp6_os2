@@ -70,6 +70,19 @@ class XmlTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testClientRequestsFolderList_CouldNotReadFolder_ShouldReturnCouldNotReadFolder(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurDossierLecture/>'
+
+        get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_folder_list.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
     def testClientRequestsCreateFolder_ShouldCreateFolder(self):
         expected_folder_name = 'd1/'
         create_folder_list_request = b'<creerDossier>d1</creerDossier>'
