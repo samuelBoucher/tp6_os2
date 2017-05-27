@@ -50,6 +50,13 @@ class FileSystem:
 
         return content
 
+    def get_file_modification_date(self, file_name):
+        complete_file_name = self.get_complete_file_path(file_name)
+        file_stat = os.stat(complete_file_name)
+        modification_date = str(file_stat.st_mtime)
+
+        return modification_date
+
     def get_file_list(self, folder_name):
         complete_file_name = self.get_complete_folder_path(folder_name)
         file_list = []
