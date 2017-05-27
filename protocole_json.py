@@ -2,11 +2,9 @@ import os
 import json
 
 from protocole import Protocole
-from pathlib import PurePath
 
 
 class ProtocoleJson(Protocole):
-    """Interface du langage de communication XML"""
 
     def __init__(self, file_system):
         super(Protocole, self).__init__()
@@ -23,7 +21,7 @@ class ProtocoleJson(Protocole):
             document = self.verify_file_more_recent(request)
         elif 'supprimerFichier' in request:
             document = self.delete_file(request)
-        elif '<quitter/>' in request:
+        elif 'quitter' in request:
             document = self.quit()
         else:
             document = self.invalid()
@@ -75,7 +73,7 @@ class ProtocoleJson(Protocole):
                 self.file_system.delete_file(file_to_delete)
                 response = "ok"
             else:
-                response = "erreurFichierLecture"
+                response = "erreurFichierInexistant"
         else:
             response = "erreurDossierInexistant"
 
@@ -127,10 +125,10 @@ class ProtocoleJson(Protocole):
         return self.element_to_xml(response_tag)
 
     def quit(self):
-        tag = 'bye'
-        document = self.element_to_xml(tag)
+        data = {}
+        self.add_row_to_json_table('response', 'bye', data)
 
-        return document
+        return data;
 
     def invalid(self):
         tag = 'invalid'
