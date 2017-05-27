@@ -1,6 +1,6 @@
 import genericpath
 import os
-
+from signature_generator import SignatureGenerator
 
 class FileSystem:
 
@@ -37,6 +37,18 @@ class FileSystem:
     def delete_file(self, directory):
         complete_directory = self.get_complete_folder_path(directory)
         os.remove(complete_directory)
+
+    def get_md5_signature(self, file_name):
+        content = self.get_file_content(file_name)
+        signature = SignatureGenerator.generate_signature(content)
+
+        return signature
+
+    def get_file_content(self, file_name):
+        complete_file_name = self.get_complete_file_path(file_name)
+        content = open(complete_file_name).read()
+
+        return content
 
     def get_file_list(self, folder_name):
         complete_file_name = self.get_complete_folder_path(folder_name)
