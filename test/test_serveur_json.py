@@ -89,6 +89,28 @@ class JsonTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
+    def testClientRequestsDownloadFile_ShouldReturnFile(self):
+        expected_answer = '{"fichier": {' \
+                          '"signature": "12341234",' \
+                          '"contenu": "ok",' \
+                          '"date": 12.234234}}'
+        download_file_request = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        download_file_request['telechargerFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), quit_request]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_md5_signature.return_value = "12341234"
+        self.mock_file_system.get_file_content.return_value = "ok"
+        self.mock_file_system.get_file_modification_date.return_value = 12.234234
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(expected_answer)
+
     def testClientRequestsFolderList_ShouldReturnFolderList(self):
         expected_answer = self.XML_PREFIX + \
                           '<listeDossiers>' \
