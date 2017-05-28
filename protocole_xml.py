@@ -13,6 +13,7 @@ class ProtocoleXml(Protocole):
 
     def respond(self, request):
         if '<questionListeDossiers>' in request:
+
             document = self.get_folder_list(request)
         elif '<creerDossier>' in request:
             document = self.create_folder(request)
