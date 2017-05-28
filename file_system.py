@@ -2,6 +2,7 @@ import genericpath
 import os
 from signature_generator import SignatureGenerator
 
+
 class FileSystem:
 
     def __init__(self, root):
@@ -33,6 +34,11 @@ class FileSystem:
     def create_folder(self, directory):
         complete_directory = self.get_complete_folder_path(directory)
         os.mkdir(complete_directory)
+
+    def create_file(self, directory, content):
+        complete_directory = self.get_complete_folder_path(directory)
+        file = open(complete_directory, "w+")
+        file.write(content)
 
     def delete_file(self, directory):
         complete_directory = self.get_complete_folder_path(directory)
@@ -67,13 +73,6 @@ class FileSystem:
                 file_list.append(path)
 
         return file_list
-
-    def get_file_modification_date(self, file_name):
-        complete_file_name = self.get_complete_file_path(file_name)
-        file_stat = os.stat(complete_file_name)
-        modification_date = str(file_stat.st_mtime)
-
-        return modification_date
 
     def get_complete_folder_path(self, folder_name):
         return self.root + folder_name

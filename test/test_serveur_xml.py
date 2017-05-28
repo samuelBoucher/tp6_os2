@@ -27,8 +27,22 @@ class XmlTest(unittest.TestCase):
         b'<nom>f1</nom>' \
         b'<dossier>d1</dossier>' \
         b'</supprimerFichier>'
+    DOWNLOAD_REQUEST = \
+        b'<telechargerFichier>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'</telechargerFichier>'
+    UPLOAD_REQUEST = \
+        b'<televerserFichier>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'<signature>444bcb3a3fcf8389296c49467f27e1d6</signature>' \
+        b'<contenu>b2s=</contenu>' \
+        b'<date>12.123123</date>' \
+        b'</televerserFichier>'
 
     mock_connexion = Mock
+    mock_ascii_encoder = Mock
     mock_file_system = Mock
     protocol = ProtocoleXml
     client = Client
@@ -37,9 +51,10 @@ class XmlTest(unittest.TestCase):
 
     def setUp(self):
         self.mock_connexion = Mock()
+        self.mock_ascii_encoder = Mock()
         self.mock_file_system = Mock()
         self.mock_file_system.root = 'root'
-        self.protocol = ProtocoleXml(self.mock_file_system)
+        self.protocol = ProtocoleXml(self.mock_file_system, self.mock_ascii_encoder)
         self.client = Client(self.thread_name, self.mock_connexion, self.protocol)
 
     def testClientRequestsToQuit_ShouldSendByeToClient(self):
@@ -251,6 +266,103 @@ class XmlTest(unittest.TestCase):
         self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = True
         self.mock_file_system.delete_file.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_shouldReturnFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<fichier>' \
+                          '<signature>12341234</signature>' \
+                          '<contenu>ok</contenu>' \
+                          '<date>12.234234</date>' \
+                          '</fichier>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_md5_signature.return_value = "12341234"
+        self.mock_file_system.get_file_content.return_value = "ok"
+        self.mock_file_system.get_file_modification_date.return_value = "12.234234"
+        self.mock_ascii_encoder.encode_in_ascii.return_value = 'ok'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_FileDoesntExist_ShouldReturnFileDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_md5_signature.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_shouldDownloadFileOnServer(self):
+        expected_file_path = 'd1/f1'
+        expected_content = 'ok'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = expected_content
+
+        self.client.run()
+
+        self.mock_file_system.create_file.assert_called_once_with(expected_file_path, expected_content)
+
+    def testUploadFile_shouldReturnOk(self):
+        expected_answer = self.XML_PREFIX + '<ok/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = 'ok'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_FolderDoesntExist_ShouldReturnFolderDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_FileAlreadyExists_ShouldReturnFileAlreadyExists(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierExiste/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_SignatureError_ShouldReturnSignatureError(self):
+        expected_answer = self.XML_PREFIX + '<erreurSignature/>'
+        upload_request = b'<televerserFichier>' \
+            b'<nom>f1</nom>' \
+            b'<dossier>d1</dossier>' \
+            b'<signature>bad_signature</signature>' \
+            b'<contenu>b2s=</contenu>' \
+            b'<date>12.123123</date>' \
+            b'</televerserFichier>'
+        self.mock_connexion.recv.side_effect = [upload_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = 'ok'
 
         self.client.run()
 
