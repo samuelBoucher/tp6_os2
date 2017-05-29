@@ -18,7 +18,7 @@ class ProtocoleJson(Protocole):
             document = self.create_folder(request)
         elif 'questionListeFichiers' in request:
             document = self.get_file_list(request)
-        elif '<questionFichierRecent>' in request:
+        elif 'questionFichierRecent' in request:
             document = self.verify_file_more_recent(request)
         elif 'supprimerFichier' in request:
             document = self.delete_file(request)
@@ -154,23 +154,26 @@ class ProtocoleJson(Protocole):
         folder_tag_name = 'dossier'
         file_tag_name = 'nom'
         date_tag_name = 'date'
-        folder_path = self.get_request_content(request, request_tag_name, folder_tag_name)
+        folder_path = self.interpret(request, request_tag_name, folder_tag_name)
         folder_name = self.get_folder_name(folder_path)
-        file_name = self.get_request_content(request, request_tag_name, file_tag_name)
+        file_name = self.interpret(request, request_tag_name, file_tag_name)
         file_path = folder_name + file_name
 
+        data = {}
+
         if self.file_system.file_exists(file_path):
-            client_file_date = self.get_request_content(request, request_tag_name, date_tag_name)
+            client_file_date = self.interpret(request, request_tag_name, date_tag_name)
             server_file_date = self.file_system.get_file_modification_date(file_path)
 
-            if client_file_date > server_file_date:
-                response_tag = 'oui'
+            if client_file_date > float(server_file_date):
+                response = 'oui'
             else:  # On considère que c'est impossible que les deux dates soient égales.
-                response_tag = 'non'
+                response = 'non'
         else:
-            response_tag = 'erreurFichierInexistant'
+            response = "erreurFichierInexistant"
 
-        return self.element_to_xml(response_tag)
+        self.add_row_to_json_table("reponse", response, data)
+        return data
 
     def quit(self):
         data = {}
@@ -199,7 +202,7 @@ class ProtocoleJson(Protocole):
         returned_data = []
 
         if 'contenu' not in data:
-            returned_data.append(data[parent_tag][child_tag])
+            return data[parent_tag][child_tag]
         else:
             for node in data[parent_tag][child_tag]:
                 returned_data.append(node)

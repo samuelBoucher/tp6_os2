@@ -289,53 +289,56 @@ class JsonTest(unittest.TestCase):
         self.client.run()
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
-    #
-    # def testClientAsksIfFileMoreRecent_FileMoreRecent_ShouldReturnYes(self):
-    #     expected_answer = self.XML_PREFIX + '<oui/>'
-    #     request = b'<questionFichierRecent>' \
-    #                 b'<nom>f1</nom>' \
-    #                 b'<dossier>d1</dossier>' \
-    #                 b'<date>2222.2222</date>' \
-    #                 b'</questionFichierRecent>'
-    #     self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
-    #     self.mock_file_system.file_exists.return_value = True
-    #     self.mock_file_system.get_file_modification_date.return_value = '1111.1111'
-    #     self.mock_file_system.root = 'root'
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
-    #
-    # def testClientAsksIfFileMoreRecent_FileNotMoreRecent_ShouldReturnNo(self):
-    #     expected_answer = self.XML_PREFIX + '<non/>'
-    #     request = b'<questionFichierRecent>' \
-    #                 b'<nom>f1</nom>' \
-    #                 b'<dossier>d1</dossier>' \
-    #                 b'<date>1111.1111</date>' \
-    #                 b'</questionFichierRecent>'
-    #     self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
-    #     self.mock_file_system.file_exists.return_value = True
-    #     self.mock_file_system.get_file_modification_date.return_value = '2222.2222'
-    #     self.mock_file_system.root = 'root'
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
-    #
-    # def testClientAsksIfFileMoreRecent_FileDoesNotExist_ShouldReturnFileDoesNotExist(self):
-    #     expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
-    #     request = b'<questionFichierRecent>' \
-    #                 b'<nom>f1</nom>' \
-    #                 b'<dossier>d1</dossier>' \
-    #                 b'<date>1111.1111</date>' \
-    #                 b'</questionFichierRecent>'
-    #     self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
-    #     self.mock_file_system.file_exists.return_value = False
-    #     self.mock_file_system.root = 'root'
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientAsksIfFileMoreRecent_FileMoreRecent_ShouldReturnYes(self):
+        expected_answer = '{"reponse": "oui"}'
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['date'] = 2222.2222
+        uploadFileRequest['questionFichierRecent'] = fileData
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_file_modification_date.return_value = '1111.1111'
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientAsksIfFileMoreRecent_FileNotMoreRecent_ShouldReturnNo(self):
+        expected_answer = '{"reponse": "non"}'
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['date'] = 1111.1111
+        uploadFileRequest['questionFichierRecent'] = fileData
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_file_modification_date.return_value = '2222.2222'
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientAsksIfFileMoreRecent_FileDoesNotExist_ShouldReturnFileDoesNotExist(self):
+        expected_answer = '{"reponse": "erreurFichierInexistant"}'
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['date'] = 1111.1111
+        uploadFileRequest['questionFichierRecent'] = fileData
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
 
 if __name__ == '__main__':
