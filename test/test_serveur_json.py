@@ -52,8 +52,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         delete_file_request['supprimerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
 
         self.client.run()
@@ -67,8 +66,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         delete_file_request['supprimerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
 
         self.client.run()
@@ -82,8 +80,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         delete_file_request['supprimerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(delete_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.file_exists.return_value = False
 
@@ -101,8 +98,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         download_file_request['telechargerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.file_exists.return_value = True
         self.mock_file_system.get_md5_signature.return_value = "12341234"
@@ -120,8 +116,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         download_file_request['telechargerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.file_exists.return_value = False
         self.mock_file_system.get_md5_signature.return_value = "12341234"
@@ -139,8 +134,7 @@ class JsonTest(unittest.TestCase):
         fileData['nom'] = 'f1'
         fileData['dossier'] = 'd1'
         download_file_request['telechargerFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(download_file_request), self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
         self.mock_file_system.file_exists.return_value = True
         self.mock_file_system.get_md5_signature.return_value = "12341234"
@@ -161,8 +155,7 @@ class JsonTest(unittest.TestCase):
         fileData['contenu'] = 'wow'
         fileData['date'] = 12.41241
         uploadFileRequest['televerserFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = False
 
         self.client.run()
@@ -178,8 +171,7 @@ class JsonTest(unittest.TestCase):
         fileData['contenu'] = 'wow'
         fileData['date'] = 12.41241
         uploadFileRequest['televerserFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = False
 
         self.client.run()
@@ -196,8 +188,7 @@ class JsonTest(unittest.TestCase):
         fileData['contenu'] = 'wow'
         fileData['date'] = 12.41241
         uploadFileRequest['televerserFichier'] = fileData
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = True
 
         self.client.run()
@@ -207,8 +198,7 @@ class JsonTest(unittest.TestCase):
     def testClientRequestsFolderList_ShouldReturnFolderList(self):
         expected_answer = '{"listeDossiers": {"dossier": ["d1/d2", "d1/d2/d3"]}}'
         get_folder_list_request = '{"questionListeDossiers": "d1"}'
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_folder_list.return_value = ['d1/d2', 'd1/d2/d3']
 
@@ -220,8 +210,7 @@ class JsonTest(unittest.TestCase):
         expected_answer = '{"reponse": "erreurDossierInexistant"}'
 
         get_folder_list_request = '{"questionListeDossiers": "d1"}'
-        quit_request = '{"action": "quitter"}'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
 
         self.client.run()
