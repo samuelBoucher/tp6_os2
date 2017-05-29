@@ -26,7 +26,8 @@ class FileSystem:
         for root, directories, filenames in os.walk(complete_folder_name):
             for directory in directories:
                 path = os.path.join(root, directory)
-                path = path.replace(self.root, '')  # On enlève la racine commune 'dropbox\'
+                path = path.replace(self.root, '')
+                path = path.replace('\\', '/')# On enlève la racine commune 'dropbox\'
                 folder_list.append(path)
 
         return folder_list
