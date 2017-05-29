@@ -203,34 +203,29 @@ class JsonTest(unittest.TestCase):
 
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
-    # def testClientRequestsFolderList_ShouldReturnFolderList(self):
-    #     expected_answer = self.XML_PREFIX + \
-    #                       '<listeDossiers>' \
-    #                       '<dossier>d1/d2</dossier>' \
-    #                       '<dossier>d1/d2/d3</dossier>' \
-    #                       '</listeDossiers>'
-    #     get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
-    #     quit_request = b'<quitter/>'
-    #     self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
-    #     self.mock_file_system.folder_exists.return_value = True
-    #     self.mock_file_system.get_folder_list.return_value = ['d1/d2', 'd1/d2/d3']
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
-    #
-    # def testClientRequestsFolderList_FolderDoesntExist_ShouldReturnError(self):
-    #     expected_answer = self.XML_PREFIX + \
-    #                       '<erreurDossierInexistant/>'
-    #
-    #     get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
-    #     quit_request = b'<quitter/>'
-    #     self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
-    #     self.mock_file_system.folder_exists.return_value = False
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+    def testClientRequestsFolderList_ShouldReturnFolderList(self):
+        expected_answer = '{"listeDossiers": {"dossier": ["d1/d2", "d1/d2/d3"]}}'
+        get_folder_list_request = '{"questionListeDossiers": "d1"}'
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_folder_list.return_value = ['d1/d2', 'd1/d2/d3']
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsFolderList_FolderDoesntExist_ShouldReturnError(self):
+        expected_answer = '{"reponse": "erreurDossierInexistant"}'
+
+        get_folder_list_request = '{"questionListeDossiers": "d1"}'
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
     #
     # def testClientRequestsCreateFolder_ShouldCreateFolder(self):
     #     expected_folder_name = 'd1/'
