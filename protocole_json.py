@@ -165,7 +165,7 @@ class ProtocoleJson(Protocole):
             client_file_date = self.interpret(request, request_tag_name, date_tag_name)
             server_file_date = self.file_system.get_file_modification_date(file_path)
 
-            if client_file_date > float(server_file_date):
+            if float(client_file_date) > float(server_file_date):
                 response = 'oui'
             else:  # On considère que c'est impossible que les deux dates soient égales.
                 response = 'non'
@@ -182,10 +182,11 @@ class ProtocoleJson(Protocole):
         return data;
 
     def invalid(self):
-        tag = 'invalid'
-        document = self.element_to_xml(tag)
+        data = {}
 
-        return document
+        self.add_row_to_json_table('reponse', 'invalid', data)
+
+        return data
 
     def interpret(self, json_data, parent_tag, child_tag=''):
         data = json.loads(json_data)
