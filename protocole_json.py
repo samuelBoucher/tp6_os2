@@ -114,6 +114,21 @@ class ProtocoleJson(Protocole):
 
         return self.json_table_to_json_text(data)
 
+    def download_file(self, request):
+        request_tag_name = "televerserFichier"
+        request_content = self.interpret(request, request_tag_name)
+        file_path = request_content['dossier'] + '/' + request_content['nom']
+
+        data = {}
+
+        if not self.file_system.file_exists(file_path):
+            self.file_system.
+        else:
+            response = "erreurDossierInexistant"
+            self.add_row_to_json_table('reponse', response, data)
+
+        return self.json_table_to_json_text(data)
+
     def get_file_list(self, request):
         request_tag_name = 'questionListeFichiers'
         folder = self.get_request_content(request, request_tag_name)
