@@ -16,7 +16,7 @@ class ProtocoleJson(Protocole):
             document = self.get_folder_list(request)
         elif 'creerDossier' in request:
             document = self.create_folder(request)
-        elif '<questionListeFichiers>' in request:
+        elif 'questionListeFichiers' in request:
             document = self.get_file_list(request)
         elif '<questionFichierRecent>' in request:
             document = self.verify_file_more_recent(request)
@@ -135,21 +135,19 @@ class ProtocoleJson(Protocole):
 
     def get_file_list(self, request):
         request_tag_name = 'questionListeFichiers'
-        folder = self.get_request_content(request, request_tag_name)
+        request_content = self.interpret(request, request_tag_name)
 
-        if self.file_system.folder_exists(folder):
-            file_list = self.file_system.get_file_list(folder)
-            response_parent_tag_name = 'listeFichiers'
-            response_child_tag_name = 'fichier'
-            document = self.element_to_xml(response_parent_tag_name)
-            for file in file_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, file)
-                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+        data = {}
+
+        if self.file_system.folder_exists(request_content):
+            file_list = self.file_system.get_file_list(request_content)
+            listeFichiers = {}
+            self.add_row_to_json_table('fichier', file_list, listeFichiers)
+            self.add_row_to_json_table('listeFichiers', listeFichiers, data)
         else:
-            response_tag_name = 'erreurDossierInexistant'
-            document = self.element_to_xml(response_tag_name)
+            self.add_row_to_json_table('reponse', 'erreurDossierInexistant', data)
 
-        return document
+        return data
 
     def verify_file_more_recent(self, request):
         request_tag_name = 'questionFichierRecent'

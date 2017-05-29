@@ -3,6 +3,7 @@
 
 import unittest
 import json
+from ascii_encoder import AsciiEncoder
 from unittest.mock import Mock
 
 from protocole_json import ProtocoleJson
@@ -16,6 +17,7 @@ class JsonTest(unittest.TestCase):
 
     mock_connexion = Mock
     mock_file_system = Mock
+    asciiEncoder = AsciiEncoder
     protocol = ProtocoleJson
     client = Client
     thread_name = 'client_name'
@@ -24,8 +26,8 @@ class JsonTest(unittest.TestCase):
     def setUp(self):
         self.mock_connexion = Mock()
         self.mock_file_system = Mock()
-        self.mock_ascii_encoder = Mock()
-        self.protocol = ProtocoleJson(self.mock_file_system, self.mock_ascii_encoder)
+        self.asciiEncoder = AsciiEncoder()
+        self.protocol = ProtocoleJson(self.mock_file_system, self.asciiEncoder)
         self.client = Client(self.thread_name, self.mock_connexion, self.protocol)
 
     def testClientRequestsToQuit_ShouldSendByeToClient(self):
@@ -265,34 +267,28 @@ class JsonTest(unittest.TestCase):
         self.client.run()
         self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
 
-    # def testClientRequestsFileList_ShouldReturnFileList(self):
-    #     expected_answer = self.XML_PREFIX + \
-    #                       '<listeFichiers>' \
-    #                       '<fichier>d1/f1</fichier>' \
-    #                       '<fichier>d1/d2/f2</fichier>' \
-    #                       '</listeFichiers>'
-    #     get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-    #     quit_request = b'<quitter/>'
-    #     self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
-    #     self.mock_file_system.folder_exists.return_value = True
-    #     self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
-    #
-    # def testClientRequestsFileList_FolderDoesntExist_ShouldReturnError(self):
-    #     expected_answer = self.XML_PREFIX + \
-    #                       '<erreurDossierInexistant/>'
-    #
-    #     get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-    #     quit_request = b'<quitter/>'
-    #     self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
-    #     self.mock_file_system.folder_exists.return_value = False
-    #
-    #     self.client.run()
-    #
-    #     self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+    def testClientRequestsFileList_ShouldReturnFileList(self):
+        expected_answer = '{"listeFichiers": {"fichier": ["d1/f1", "d1/d2/f2"]}}'
+        get_file_list_request = '{"questionListeFichiers": "d1"}'
+        self.mock_connexion.recv.side_effect = [get_file_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsFileList_FolderDoesntExist_ShouldReturnError(self):
+        expected_answer = '{"reponse": "erreurDossierInexistant"}'
+
+        get_file_list_request = '{"questionListeFichiers": "d1"}'
+        self.mock_connexion.recv.side_effect = [get_file_list_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+        self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
     #
     # def testClientAsksIfFileMoreRecent_FileMoreRecent_ShouldReturnYes(self):
     #     expected_answer = self.XML_PREFIX + '<oui/>'
