@@ -25,7 +25,8 @@ class JsonTest(unittest.TestCase):
     def setUp(self):
         self.mock_connexion = Mock()
         self.mock_file_system = Mock()
-        self.protocol = ProtocoleJson(self.mock_file_system)
+        self.mock_ascii_encoder = Mock()
+        self.protocol = ProtocoleJson(self.mock_file_system, self.mock_ascii_encoder)
         self.client = Client(self.thread_name, self.mock_connexion, self.protocol)
 
     def testClientRequestsToQuit_ShouldSendByeToClient(self):
@@ -144,6 +145,59 @@ class JsonTest(unittest.TestCase):
         self.mock_file_system.get_md5_signature.return_value = "12341234"
         self.mock_file_system.get_file_content.return_value = "ok"
         self.mock_file_system.get_file_modification_date.return_value = "12.234234"
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsUploadFile_ShouldReturnOk(self):
+        expected_answer = '{"reponse": "ok"}'
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['signature'] = 'wow'
+        fileData['contenu'] = 'wow'
+        fileData['date'] = 12.41241
+        uploadFileRequest['televerserFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsUploadFile_ShouldCallCreateFile(self):
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['signature'] = 'wow'
+        fileData['contenu'] = 'wow'
+        fileData['date'] = 12.41241
+        uploadFileRequest['televerserFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_file_system.create_file.assert_any_call(fileData['dossier'], fileData['nom'])
+
+    def testClientRequestsUploadFile_FileAlreadyExists_ShouldReturnError(self):
+        expected_answer = '{"reponse": "erreurFichierExiste"}'
+        uploadFileRequest = {}
+        fileData = {}
+        fileData['nom'] = 'f1'
+        fileData['dossier'] = 'd1'
+        fileData['signature'] = 'wow'
+        fileData['contenu'] = 'wow'
+        fileData['date'] = 12.41241
+        uploadFileRequest['televerserFichier'] = fileData
+        quit_request = '{"action": "quitter"}'
+        self.mock_connexion.recv.side_effect = [json.dumps(uploadFileRequest), quit_request]
+        self.mock_file_system.file_exists.return_value = True
 
         self.client.run()
 
