@@ -6,9 +6,10 @@ from protocole import Protocole
 
 class ProtocoleJson(Protocole):
 
-    def __init__(self, file_system):
+    def __init__(self, file_system, ascii_encoder):
         super(Protocole, self).__init__()
         self.file_system = file_system
+        self.ascii_encoder = ascii_encoder
 
     def respond(self, request):
         if '<questionListeDossiers>' in request:

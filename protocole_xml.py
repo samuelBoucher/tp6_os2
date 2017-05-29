@@ -2,19 +2,19 @@ import os
 from xml.dom.minidom import Document, parseString
 
 from protocole import Protocole
-from pathlib import PurePath
+from signature_generator import SignatureGenerator
 
 
 class ProtocoleXml(Protocole):
     """Interface du langage de communication XML"""
 
-    def __init__(self, file_system):
+    def __init__(self, file_system, ascii_encoder):
         super(Protocole, self).__init__()
         self.file_system = file_system
+        self.ascii_encoder = ascii_encoder
 
     def respond(self, request):
         if '<questionListeDossiers>' in request:
-
             document = self.get_folder_list(request)
         elif '<creerDossier>' in request:
             document = self.create_folder(request)
@@ -22,6 +22,12 @@ class ProtocoleXml(Protocole):
             document = self.get_file_list(request)
         elif '<questionFichierRecent>' in request:
             document = self.verify_file_more_recent(request)
+        elif '<supprimerFichier>' in request:
+            document = self.delete_file(request)
+        elif '<telechargerFichier>' in request:
+            document = self.download_file(request)
+        elif '<televerserFichier>' in request:
+            document = self.upload_file(request)
         elif '<quitter/>' in request:
             document = self.quit()
         else:
@@ -34,13 +40,17 @@ class ProtocoleXml(Protocole):
         folder = self.get_request_content(request, request_tag_name)
 
         if self.file_system.folder_exists(folder):
-            folder_list = self.file_system.get_folder_list(folder)
-            response_parent_tag_name = 'listeDossiers'
-            response_child_tag_name = 'dossier'
-            document = self.element_to_xml(response_parent_tag_name)
-            for folder in folder_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, folder)
-                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            try:
+                folder_list = self.file_system.get_folder_list(folder)
+                response_parent_tag_name = 'listeDossiers'
+                response_child_tag_name = 'dossier'
+                document = self.element_to_xml(response_parent_tag_name)
+                for folder in folder_list:
+                    xml_file_name = self.element_to_xml(response_child_tag_name, folder)
+                    document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            except IOError:
+                response_tag_name = 'erreurDossierLecture'
+                document = self.element_to_xml(response_tag_name)
         else:
             response_tag_name = 'erreurDossierInexistant'
             document = self.element_to_xml(response_tag_name)
@@ -69,13 +79,17 @@ class ProtocoleXml(Protocole):
         folder = self.get_request_content(request, request_tag_name)
 
         if self.file_system.folder_exists(folder):
-            file_list = self.file_system.get_file_list(folder)
-            response_parent_tag_name = 'listeFichiers'
-            response_child_tag_name = 'fichier'
-            document = self.element_to_xml(response_parent_tag_name)
-            for file in file_list:
-                xml_file_name = self.element_to_xml(response_child_tag_name, file)
-                document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            try:
+                file_list = self.file_system.get_file_list(folder)
+                response_parent_tag_name = 'listeFichiers'
+                response_child_tag_name = 'fichier'
+                document = self.element_to_xml(response_parent_tag_name)
+                for file in file_list:
+                    xml_file_name = self.element_to_xml(response_child_tag_name, file)
+                    document.childNodes[0].appendChild(xml_file_name.childNodes[0])
+            except IOError:
+                response_tag_name = 'erreurDossierLecture'
+                document = self.element_to_xml(response_tag_name)
         else:
             response_tag_name = 'erreurDossierInexistant'
             document = self.element_to_xml(response_tag_name)
@@ -93,17 +107,112 @@ class ProtocoleXml(Protocole):
         file_path = folder_name + file_name
 
         if self.file_system.file_exists(file_path):
-            client_file_date = self.get_request_content(request, request_tag_name, date_tag_name)
-            server_file_date = self.file_system.get_file_modification_date(file_path)
+            try:
+                client_file_date = self.get_request_content(request, request_tag_name, date_tag_name)
+                server_file_date = self.file_system.get_file_modification_date(file_path)
 
-            if client_file_date > server_file_date:
-                response_tag = 'oui'
-            else:  # On considère que c'est impossible que les deux dates soient égales.
-                response_tag = 'non'
+                if client_file_date > server_file_date:
+                    response_tag = 'oui'
+                else:  # On considère que c'est impossible que les deux dates soient égales.
+                    response_tag = 'non'
+            except IOError:
+                response_tag = 'erreurFichierLecture'
         else:
             response_tag = 'erreurFichierInexistant'
 
         return self.element_to_xml(response_tag)
+
+    def delete_file(self, request):
+        request_tag_name = "supprimerFichier"
+        folder_tag_name = 'dossier'
+        file_tag_name = 'nom'
+        folder_path = self.get_request_content(request, request_tag_name, folder_tag_name)
+        folder_name = self.get_folder_name(folder_path)
+        file_name = self.get_request_content(request, request_tag_name, file_tag_name)
+        file_path = folder_name + file_name
+
+        if self.file_system.folder_exists(folder_name):
+            if self.file_system.file_exists(file_path):
+                try:
+                    self.file_system.delete_file(file_path)
+                    response_tag = "ok"
+                except IOError:
+                    response_tag = 'erreurFichierLecture'
+            else:
+                response_tag = "erreurFichierInexistant"
+        else:
+            response_tag = "erreurDossierInexistant"
+
+        return self.element_to_xml(response_tag)
+
+    def download_file(self, request):
+        request_tag_name = 'telechargerFichier'
+        folder_tag_name = 'dossier'
+        file_tag_name = 'nom'
+        signature_tag_name = 'signature'
+        content_tag_name = 'contenu'
+        date_tag_name = 'date'
+
+        folder_path = self.get_request_content(request, request_tag_name, folder_tag_name)
+        folder_name = self.get_folder_name(folder_path)
+        file_name = self.get_request_content(request, request_tag_name, file_tag_name)
+        file_path = folder_name + file_name
+
+        if self.file_system.file_exists(file_path):
+            try:
+                response_tag_name = 'fichier'
+                signature = self.file_system.get_md5_signature(file_path)
+                content = self.file_system.get_file_content(file_path)
+                encoded_content = self.ascii_encoder.encode_in_ascii(content)
+                date = self.file_system.get_file_modification_date(file_path)
+                document = self.element_to_xml(response_tag_name)
+                xml_signature = self.element_to_xml(signature_tag_name, signature)
+                xml_content = self.element_to_xml(content_tag_name, encoded_content)
+                xml_date = self.element_to_xml(date_tag_name, date)
+                document.childNodes[0].appendChild(xml_signature.childNodes[0])
+                document.childNodes[0].appendChild(xml_content.childNodes[0])
+                document.childNodes[0].appendChild(xml_date.childNodes[0])
+            except IOError:
+                response_tag_name = 'erreurFichierLecture'
+                document = self.element_to_xml(response_tag_name)
+        else:
+            response_tag_name = 'erreurFichierInexistant'
+            document = self.element_to_xml(response_tag_name)
+
+        return document
+
+    def upload_file(self, request):
+        request_tag_name = 'televerserFichier'
+        folder_tag_name = 'dossier'
+        file_tag_name = 'nom'
+        signature_tag_name = 'signature'
+        content_tag_name = 'contenu'
+        folder_path = self.get_request_content(request, request_tag_name, folder_tag_name)
+        folder_name = self.get_folder_name(folder_path)
+        file_name = self.get_request_content(request, request_tag_name, file_tag_name)
+        file_path = folder_name + file_name
+        signature = self.get_request_content(request, request_tag_name, signature_tag_name)
+        content = self.get_request_content(request, request_tag_name, content_tag_name)
+        decoded_content = self.ascii_encoder.decode_ascii(content)
+
+        if self.file_system.folder_exists(folder_name):
+
+            if self.file_system.file_exists(file_path):
+                response_tag_name = 'erreurFichierExiste'
+            else:
+                if self.verify_signature(decoded_content, signature):
+                    self.file_system.create_file(file_path, decoded_content)
+                    response_tag_name = 'ok'
+                else:
+                    response_tag_name = 'erreurSignature'
+        else:
+            response_tag_name = 'erreurDossierInexistant'
+
+        return self.element_to_xml(response_tag_name)
+
+    def verify_signature(self, content, signature):
+        content_signature = SignatureGenerator.generate_signature(content)
+        return content_signature == signature
 
     def quit(self):
         tag = 'bye'

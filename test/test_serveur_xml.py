@@ -13,8 +13,36 @@ class XmlTest(unittest.TestCase):
 
     XML_PREFIX = '<?xml version="1.0" ?>'
     QUIT_REQUEST = b'<quitter/>'
+    GET_FOLDER_LIST_REQUEST = b'<questionListeDossiers>d1</questionListeDossiers>'
+    CREATE_FOLDER_REQUEST = b'<creerDossier>d1</creerDossier>'
+    GET_FILE_LIST_REQUEST = b'<questionListeFichiers>d1</questionListeFichiers>'
+    FILE_MORE_RECENT_REQUEST = \
+        b'<questionFichierRecent>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'<date>2222.2222</date>' \
+        b'</questionFichierRecent>'
+    DELETE_FILE_REQUEST = \
+        b'<supprimerFichier>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'</supprimerFichier>'
+    DOWNLOAD_REQUEST = \
+        b'<telechargerFichier>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'</telechargerFichier>'
+    UPLOAD_REQUEST = \
+        b'<televerserFichier>' \
+        b'<nom>f1</nom>' \
+        b'<dossier>d1</dossier>' \
+        b'<signature>444bcb3a3fcf8389296c49467f27e1d6</signature>' \
+        b'<contenu>b2s=</contenu>' \
+        b'<date>12.123123</date>' \
+        b'</televerserFichier>'
 
     mock_connexion = Mock
+    mock_ascii_encoder = Mock
     mock_file_system = Mock
     protocol = ProtocoleXml
     client = Client
@@ -23,20 +51,22 @@ class XmlTest(unittest.TestCase):
 
     def setUp(self):
         self.mock_connexion = Mock()
+        self.mock_ascii_encoder = Mock()
         self.mock_file_system = Mock()
-        self.protocol = ProtocoleXml(self.mock_file_system)
+        self.mock_file_system.root = 'root'
+        self.protocol = ProtocoleXml(self.mock_file_system, self.mock_ascii_encoder)
         self.client = Client(self.thread_name, self.mock_connexion, self.protocol)
 
     def testClientRequestsToQuit_ShouldSendByeToClient(self):
         expected_answer = self.XML_PREFIX + '<bye/>'
-        self.mock_connexion.recv.return_value = b'<quitter/>'
+        self.mock_connexion.recv.return_value = self.QUIT_REQUEST
 
         self.client.run()
 
         self.mock_connexion.send.assert_called_with(bytes(expected_answer, 'UTF-8'))
 
     def testClientRequestsToQuit_ShouldCloseConnection(self):
-        self.mock_connexion.recv.return_value = b'<quitter/>'
+        self.mock_connexion.recv.return_value = self.QUIT_REQUEST
 
         self.client.run()
 
@@ -48,9 +78,7 @@ class XmlTest(unittest.TestCase):
                           '<dossier>d1/d2</dossier>' \
                           '<dossier>d1/d2/d3</dossier>' \
                           '</listeDossiers>'
-        get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [self.GET_FOLDER_LIST_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_folder_list.return_value = ['d1/d2', 'd1/d2/d3']
 
@@ -61,11 +89,19 @@ class XmlTest(unittest.TestCase):
     def testClientRequestsFolderList_FolderDoesntExist_ShouldReturnError(self):
         expected_answer = self.XML_PREFIX + \
                           '<erreurDossierInexistant/>'
-
-        get_folder_list_request = b'<questionListeDossiers>d1</questionListeDossiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_folder_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [self.GET_FOLDER_LIST_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testClientRequestsFolderList_CouldNotReadFolder_ShouldReturnCouldNotReadFolder(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurDossierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.GET_FOLDER_LIST_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_folder_list.side_effect = IOError()
 
         self.client.run()
 
@@ -73,11 +109,9 @@ class XmlTest(unittest.TestCase):
 
     def testClientRequestsCreateFolder_ShouldCreateFolder(self):
         expected_folder_name = 'd1/'
-        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
-        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.CREATE_FOLDER_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.side_effect = [True, False]  # Le dossier parent existe,
         #  mais le dossier à créer n'existe pas
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -85,11 +119,9 @@ class XmlTest(unittest.TestCase):
 
     def testClientRequestsCreateFolder_ShouldReturnOk(self):
         expected_answer = self.XML_PREFIX + '<ok/>'
-        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
-        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.CREATE_FOLDER_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.side_effect = [True, False]  # Le dossier parent existe,
         #  mais le dossier à créer n'existe pas
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -97,11 +129,9 @@ class XmlTest(unittest.TestCase):
 
     def testClientRequestsCreateFolder_FolderAlreadyExists_ShouldReturnFolderExists(self):
         expected_answer = self.XML_PREFIX + '<erreurDossierExiste/>'
-        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
-        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.CREATE_FOLDER_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.side_effect = [True, True]  # Le dossier parent existe,
         #  mais le dossier à créer existe aussi
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -109,10 +139,8 @@ class XmlTest(unittest.TestCase):
 
     def testClientRequestsCreateFolder_ParentFolderDoesntExist_ShouldReturnFolderDoesntExist(self):
         expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
-        create_folder_list_request = b'<creerDossier>d1</creerDossier>'
-        self.mock_connexion.recv.side_effect = [create_folder_list_request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.CREATE_FOLDER_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -124,9 +152,7 @@ class XmlTest(unittest.TestCase):
                           '<fichier>d1/f1</fichier>' \
                           '<fichier>d1/d2/f2</fichier>' \
                           '</listeFichiers>'
-        get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [self.GET_FILE_LIST_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = True
         self.mock_file_system.get_file_list.return_value = ['d1/f1', 'd1/d2/f2']
 
@@ -137,11 +163,19 @@ class XmlTest(unittest.TestCase):
     def testClientRequestsFileList_FolderDoesntExist_ShouldReturnError(self):
         expected_answer = self.XML_PREFIX + \
                           '<erreurDossierInexistant/>'
-
-        get_file_list_request = b'<questionListeFichiers>d1</questionListeFichiers>'
-        quit_request = b'<quitter/>'
-        self.mock_connexion.recv.side_effect = [get_file_list_request, quit_request]
+        self.mock_connexion.recv.side_effect = [self.GET_FILE_LIST_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testGetFileList_CouldNotReadFolder_ShouldReturnCouldNotReadFolder(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurDossierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.GET_FILE_LIST_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.get_file_list.side_effect = IOError()
 
         self.client.run()
 
@@ -149,15 +183,9 @@ class XmlTest(unittest.TestCase):
 
     def testClientAsksIfFileMoreRecent_FileMoreRecent_ShouldReturnYes(self):
         expected_answer = self.XML_PREFIX + '<oui/>'
-        request = b'<questionFichierRecent>' \
-                    b'<nom>f1</nom>' \
-                    b'<dossier>d1</dossier>' \
-                    b'<date>2222.2222</date>' \
-                    b'</questionFichierRecent>'
-        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.FILE_MORE_RECENT_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = True
         self.mock_file_system.get_file_modification_date.return_value = '1111.1111'
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -165,15 +193,9 @@ class XmlTest(unittest.TestCase):
 
     def testClientAsksIfFileMoreRecent_FileNotMoreRecent_ShouldReturnNo(self):
         expected_answer = self.XML_PREFIX + '<non/>'
-        request = b'<questionFichierRecent>' \
-                    b'<nom>f1</nom>' \
-                    b'<dossier>d1</dossier>' \
-                    b'<date>1111.1111</date>' \
-                    b'</questionFichierRecent>'
-        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.FILE_MORE_RECENT_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = True
         self.mock_file_system.get_file_modification_date.return_value = '2222.2222'
-        self.mock_file_system.root = 'root'
 
         self.client.run()
 
@@ -181,14 +203,166 @@ class XmlTest(unittest.TestCase):
 
     def testClientAsksIfFileMoreRecent_FileDoesNotExist_ShouldReturnFileDoesNotExist(self):
         expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
-        request = b'<questionFichierRecent>' \
-                    b'<nom>f1</nom>' \
-                    b'<dossier>d1</dossier>' \
-                    b'<date>1111.1111</date>' \
-                    b'</questionFichierRecent>'
-        self.mock_connexion.recv.side_effect = [request, self.QUIT_REQUEST]
+        self.mock_connexion.recv.side_effect = [self.FILE_MORE_RECENT_REQUEST, self.QUIT_REQUEST]
         self.mock_file_system.file_exists.return_value = False
-        self.mock_file_system.root = 'root'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testVerifyFileMoreRecent_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurFichierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.FILE_MORE_RECENT_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_file_modification_date.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_ShouldDeleteFile(self):
+        expected_file_name = 'd1/f1'
+        self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+
+        self.client.run()
+
+        self.mock_file_system.delete_file.assert_called_once_with(expected_file_name)
+
+    def testDeleteFile_ShouldReturnOk(self):
+        expected_answer = self.XML_PREFIX + '<ok/>'
+        self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_FolderDoesntExist_ShouldReturnFolderDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_FileDoesntExist_ShouldReturnFileDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDeleteFile_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<erreurFichierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.DELETE_FILE_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.delete_file.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_shouldReturnFile(self):
+        expected_answer = self.XML_PREFIX + \
+                          '<fichier>' \
+                          '<signature>12341234</signature>' \
+                          '<contenu>ok</contenu>' \
+                          '<date>12.234234</date>' \
+                          '</fichier>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_md5_signature.return_value = "12341234"
+        self.mock_file_system.get_file_content.return_value = "ok"
+        self.mock_file_system.get_file_modification_date.return_value = "12.234234"
+        self.mock_ascii_encoder.encode_in_ascii.return_value = 'ok'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_FileDoesntExist_ShouldReturnFileDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testDownloadFile_CouldNotReadFile_ShouldReturnCouldNotReadFile(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierLecture/>'
+        self.mock_connexion.recv.side_effect = [self.DOWNLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.file_exists.return_value = True
+        self.mock_file_system.get_md5_signature.side_effect = IOError()
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_shouldDownloadFileOnServer(self):
+        expected_file_path = 'd1/f1'
+        expected_content = 'ok'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = expected_content
+
+        self.client.run()
+
+        self.mock_file_system.create_file.assert_called_once_with(expected_file_path, expected_content)
+
+    def testUploadFile_shouldReturnOk(self):
+        expected_answer = self.XML_PREFIX + '<ok/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = 'ok'
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_FolderDoesntExist_ShouldReturnFolderDoesntExist(self):
+        expected_answer = self.XML_PREFIX + '<erreurDossierInexistant/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = False
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_FileAlreadyExists_ShouldReturnFileAlreadyExists(self):
+        expected_answer = self.XML_PREFIX + '<erreurFichierExiste/>'
+        self.mock_connexion.recv.side_effect = [self.UPLOAD_REQUEST, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = True
+
+        self.client.run()
+
+        self.mock_connexion.send.assert_any_call(bytes(expected_answer, 'UTF-8'))
+
+    def testUploadFile_SignatureError_ShouldReturnSignatureError(self):
+        expected_answer = self.XML_PREFIX + '<erreurSignature/>'
+        upload_request = b'<televerserFichier>' \
+            b'<nom>f1</nom>' \
+            b'<dossier>d1</dossier>' \
+            b'<signature>bad_signature</signature>' \
+            b'<contenu>b2s=</contenu>' \
+            b'<date>12.123123</date>' \
+            b'</televerserFichier>'
+        self.mock_connexion.recv.side_effect = [upload_request, self.QUIT_REQUEST]
+        self.mock_file_system.folder_exists.return_value = True
+        self.mock_file_system.file_exists.return_value = False
+        self.mock_ascii_encoder.decode_ascii.return_value = 'ok'
 
         self.client.run()
 
