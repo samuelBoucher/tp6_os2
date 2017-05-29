@@ -14,7 +14,7 @@ class ProtocoleJson(Protocole):
     def respond(self, request):
         if 'questionListeDossiers' in request:
             document = self.get_folder_list(request)
-        elif '<creerDossier>' in request:
+        elif 'creerDossier' in request:
             document = self.create_folder(request)
         elif '<questionListeFichiers>' in request:
             document = self.get_file_list(request)
@@ -51,20 +51,23 @@ class ProtocoleJson(Protocole):
 
     def create_folder(self, request):
         request_tag_name = 'creerDossier'
-        request_content = self.get_request_content(request, request_tag_name)
+        request_content = self.interpret(request, request_tag_name)
         folder_to_create = self.get_folder_name(request_content)
         folder_path = self.get_parent_folder_name(folder_to_create)
 
+        data = {}
+
         if self.file_system.folder_exists(folder_path):
             if self.file_system.folder_exists(folder_to_create):
-                response_tag = 'erreurDossierExiste'
+                response = 'erreurDossierExiste'
             else:
                 self.file_system.create_folder(folder_to_create)
-                response_tag = 'ok'
+                response = 'ok'
         else:
-            response_tag = 'erreurDossierInexistant'
+            response = 'erreurDossierInexistant'
 
-        return self.element_to_xml(response_tag)
+        self.add_row_to_json_table('reponse', response, data)
+        return data
 
     def delete_file(self, request):
         request_tag_name = "supprimerFichier"
